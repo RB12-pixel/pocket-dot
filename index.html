@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#cbc8bb">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pocket Dot">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pocket Dot – Game Boy nel browser</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#e4e1d8;--ink:#2b2d33;--mut:#6b6d73;--btn:#2b2d33;--btnt:#f2efe6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17191c;--ink:#e6e3da;--mut:#9a9ca2;--btn:#e6e3da;--btnt:#17191c}}
+:root[data-theme="dark"]{--bg:#17191c;--ink:#e6e3da;--mut:#9a9ca2;--btn:#e6e3da;--btnt:#17191c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 12px 28px}
+.gb{position:relative;width:min(400px,94vw);background:#cbc8bb;border-radius:14px 14px 68px 14px;padding:6% 7% 14%;box-shadow:inset -4px -5px 0 #aeab9e,inset 3px 3px 0 #e4e1d5,0 20px 34px rgba(0,0,0,.35);user-select:none;-webkit-user-select:none;touch-action:none}
+.bez{background:#5b5e6c;border-radius:10px 10px 40px 10px;padding:7% 13% 6%;position:relative}
+.dm{color:#c9cad3;font:italic 600 .55rem/1 system-ui,sans-serif;letter-spacing:.12em;text-align:center;margin-bottom:5%}
+.led{position:absolute;left:5%;top:38%;width:4%;aspect-ratio:1;border-radius:50%;background:#7a2a2a;transition:background .3s}
+.on .led{background:#ff4a3d;box-shadow:0 0 8px #ff4a3d}
+.scr{position:relative;background:#c4d4a0;aspect-ratio:160/144;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+.msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:10%;color:#1f3326;font:700 .85rem/1.4 ui-monospace,Menlo,Consolas,monospace}
+.brand{margin:5% 0 0 2%;font:italic 800 1.35rem/1 "Trebuchet MS",system-ui,sans-serif;color:#2f3c8f;letter-spacing:-.01em}
+.ctl{display:flex;justify-content:space-between;align-items:center;margin-top:8%;padding:0 3%}
+.dp{position:relative;width:35%;aspect-ratio:1}
+.dp i{position:absolute;background:#2a2a30;box-shadow:0 2px 0 #111}
+.dp i:nth-child(1){left:0;top:33%;width:100%;height:34%;border-radius:4px}
+.dp i:nth-child(2){left:33%;top:0;width:34%;height:100%;border-radius:4px}
+.dp button{position:absolute;width:34%;height:34%;background:none;border:0;padding:0;cursor:pointer}
+.ab{display:flex;gap:12%;width:40%;transform:rotate(-24deg);align-items:flex-start}
+.bw{flex:1;text-align:center;font:700 .8rem/1 system-ui,sans-serif;color:#4a4a52}
+.bw:last-child{margin-top:-18%}
+.bw button{display:block;width:100%;aspect-ratio:1;border-radius:50%;border:0;background:#a3204f;box-shadow:inset -3px -4px 0 #7d1639,0 3px 0 #5a0f28;margin-bottom:8px;cursor:pointer}
+.ss{display:flex;justify-content:center;gap:9%;margin-top:10%;transform:rotate(-24deg);position:relative;left:-4%}
+.ss div{text-align:center;font:700 .65rem/1 system-ui,sans-serif;color:#4a4a52}
+.ss button{display:block;width:3.6rem;height:.9rem;border-radius:.5rem;border:0;background:#8b8d94;box-shadow:inset 0 -2px 0 #6e7077,0 2px 0 #55575d;margin:0 auto 6px;cursor:pointer}
+.grill{position:absolute;right:7%;bottom:6%;width:20%;height:13%;transform:rotate(-24deg);background:repeating-linear-gradient(90deg,#9c998c 0 4px,transparent 4px 10px)}
+button:active,.pr{filter:brightness(.8)}
+.bar{display:flex;gap:10px}
+.bar button{font:600 .95rem system-ui,sans-serif;padding:.6em 1.2em;border-radius:8px;border:0;background:var(--btn);color:var(--btnt);cursor:pointer}
+.bar button:focus-visible,.gb button:focus-visible{outline:3px solid #2f6fed;outline-offset:2px}
+.hint{max-width:400px;margin:0;text-align:center;color:var(--mut);font-size:.85rem}
+.lnk{display:inline-block;text-decoration:none;font:600 .95rem system-ui,sans-serif;padding:.6em 1.2em;border-radius:8px;border:2px solid var(--btn);color:var(--ink)}
+.lnk:focus-visible{outline:3px solid #2f6fed;outline-offset:2px}
+</style></head><body>
+<main class="gb" id="gb">
+<div class="bez"><div class="dm">DOT MATRIX</div><i class="led"></i>
+<div class="scr"><canvas id="cv" width="160" height="144"></canvas><div class="msg" id="msg">Trascina qui una ROM .gb oppure premi Inserisci ROM</div></div></div>
+<div class="brand">Pocket Dot</div>
+<div class="ctl">
+<div class="dp"><i></i><i></i>
+<button data-k="2" style="left:33%;top:0" aria-label="Su"></button><button data-k="3" style="left:33%;top:66%" aria-label="Giù"></button>
+<button data-k="1" style="left:0;top:33%" aria-label="Sinistra"></button><button data-k="0" style="left:66%;top:33%" aria-label="Destra"></button></div>
+<div class="ab"><div class="bw"><button data-k="5" aria-label="B"></button>B</div><div class="bw"><button data-k="4" aria-label="A"></button>A</div></div>
+</div>
+<div class="ss"><div><button data-k="6" aria-label="Select"></button>Select</div><div><button data-k="7" aria-label="Start"></button>Start</div></div>
+<div class="grill"></div>
+</main>
+<div class="bar"><button id="ins">Inserisci ROM</button><button id="rs">Riavvia</button><button id="mt">Suono: sì</button></div>
+<a class="lnk" href="giochi.html">Giochi disponibili →</a>
+<p class="hint">Tastiera: frecce per la croce, X per A, Z per B, Invio per Start, Backspace per Select. Supporta cartucce senza MBC, MBC1, MBC3 e MBC5, con salvataggi nel browser. L’audio è emulato su 4 canali: se non lo senti su iPhone, controlla l’interruttore del silenzioso.</p>
+<input type="file" id="f" accept=".gb,.gbc" hidden>
+<script>
+const PAL=[[196,212,160],[143,168,112],[79,107,69],[31,51,38]].map(([r,g,b])=>0xFF000000|b<<16|g<<8|r);
+class GB{
+constructor(rom,ctx){
+this.rom=rom;const t=rom[0x147];
+this.mbc=t==0||t==8||t==9?0:t<4?1:t>=15&&t<=19?3:t>=0x19&&t<=0x1E?5:-1;
+this.ram=new Uint8Array([0,2048,8192,32768,131072,65536][rom[0x149]]||0);
+this.bank=1;this.rb_=0;this.ramEn=false;this.m1=0;this.b1=1;this.b2=0;this.dirty=false;
+this.vram=new Uint8Array(0x2000);this.wram=new Uint8Array(0x2000);this.oam=new Uint8Array(160);this.io=new Uint8Array(256);
+this.R=new Uint8Array([0,0x13,0,0xD8,1,0x4D,0,1]);this.sp=0xFFFE;this.pc=0x100;this.z=1;this.n=0;this.h=1;this.c=1;
+this.ime=false;this.eiq=false;this.halt=false;this.div=0;this.tc=0;this.cyc=0;this.ly=0;this.pm=0;this.wly=0;this.keys=0;
+const io=this.io;io[0]=0xCF;io[0x0F]=0xE1;io[0x40]=0x91;io[0x41]=0x85;io[0x47]=0xFC;io[0x48]=io[0x49]=0xFF;
+this.ctx=ctx;this.img=ctx.createImageData(160,144);this.fb=new Uint32Array(this.img.data.buffer);this.fb.fill(PAL[0]);this.bgc=new Uint8Array(160);this.apuInit();
+}
+get hl(){return this.R[4]<<8|this.R[5]}
+get f(){return this.z<<7|this.n<<6|this.h<<5|this.c<<4}
+rb(a){
+if(a<0x4000)return this.rom[a];
+if(a<0x8000)return this.rom[(this.bank*0x4000+a-0x4000)%this.rom.length];
+if(a<0xA000)return this.vram[a-0x8000];
+if(a<0xC000){if(!this.ramEn||!this.ram.length||this.rb_>3)return 0xFF;return this.ram[(this.rb_*0x2000+a-0xA000)%this.ram.length]}
+if(a<0xFE00)return this.wram[a&0x1FFF];
+if(a<0xFEA0)return this.oam[a-0xFE00];
+if(a<0xFF00)return 0xFF;
+const i=a&255;
+if(i==0){const s=this.io[0];let v=0xCF|(s&0x30);if(!(s&0x10))v&=~(this.keys&15);if(!(s&0x20))v&=~(this.keys>>4&15);return v}
+if(i==4)return this.div>>8;
+if(i>=0x10&&i<=0x26)return this.apur(i);
+if(i==0x41)return(this.io[0x41]&0x78)|0x80|(this.ly==this.io[0x45]?4:0)|(this.io[0x40]&0x80?this.pm:0);
+if(i==0x44)return this.ly;
+return this.io[i];
+}
+wb(a,v){
+if(a<0x8000){const m=this.mbc;
+if(a<0x2000)this.ramEn=(v&15)==10;
+else if(m==1){if(a<0x4000)this.b1=(v&31)||1;else if(a<0x6000)this.b2=v&3;else this.m1=v&1;this.bank=this.b1|this.b2<<5;this.rb_=this.m1?this.b2:0}
+else if(m==3){if(a<0x4000)this.bank=(v&127)||1;else if(a<0x6000)this.rb_=v}
+else if(m==5){if(a<0x3000)this.bank=(this.bank&256)|v;else if(a<0x4000)this.bank=(this.bank&255)|(v&1)<<8;else if(a<0x6000)this.rb_=v&15}
+return}
+if(a<0xA000)this.vram[a-0x8000]=v;
+else if(a<0xC000){if(this.ramEn&&this.ram.length&&this.rb_<=3){this.ram[(this.rb_*0x2000+a-0xA000)%this.ram.length]=v;this.dirty=true}}
+else if(a<0xFE00)this.wram[a&0x1FFF]=v;
+else if(a<0xFEA0)this.oam[a-0xFE00]=v;
+else if(a>=0xFF00){const i=a&255;
+if(i==4)this.div=0;
+else if(i>=0x10&&i<=0x26)this.apuw(i,v);
+else if(i==0x46){const s=v<<8;for(let k=0;k<160;k++)this.oam[k]=this.rb(s+k)}
+else if(i!=0x44)this.io[i]=v}
+}
+f8(){const v=this.rb(this.pc);this.pc=this.pc+1&0xFFFF;return v}
+f16(){const l=this.f8();return l|this.f8()<<8}
+push(v){this.sp=this.sp-1&0xFFFF;this.wb(this.sp,v>>8);this.sp=this.sp-1&0xFFFF;this.wb(this.sp,v&255)}
+pop(){const l=this.rb(this.sp);this.sp=this.sp+1&0xFFFF;const h=this.rb(this.sp);this.sp=this.sp+1&0xFFFF;return l|h<<8}
+get(i){return i==6?this.rb(this.hl):this.R[i]}
+set(i,v){if(i==6)this.wb(this.hl,v);else this.R[i]=v}
+rp(p){return p==3?this.sp:this.R[p*2]<<8|this.R[p*2+1]}
+setRP(p,v){if(p==3)this.sp=v;else{this.R[p*2]=v>>8;this.R[p*2+1]=v&255}}
+cc(i){return[!this.z,!!this.z,!this.c,!!this.c][i&3]}
+alu(o,v){const a=this.R[7];let r;
+switch(o){
+case 0:case 1:{const k=o&&this.c;r=a+v+k;this.h=+((a&15)+(v&15)+k>15);this.c=+(r>255);this.n=0;break}
+case 2:case 3:case 7:{const k=o==3?this.c:0;r=a-v-k;this.h=+((a&15)-(v&15)-k<0);this.c=+(r<0);this.n=1;break}
+case 4:r=a&v;this.h=1;this.c=0;this.n=0;break;
+case 5:r=a^v;this.h=0;this.c=0;this.n=0;break;
+default:r=a|v;this.h=0;this.c=0;this.n=0}
+r&=255;this.z=+(r==0);if(o!=7)this.R[7]=r}
+acc(y){let a=this.R[7],k;
+switch(y){
+case 0:this.c=a>>7;a=(a<<1|this.c)&255;break;
+case 1:this.c=a&1;a=a>>1|this.c<<7;break;
+case 2:k=a>>7;a=(a<<1|this.c)&255;this.c=k;break;
+case 3:k=a&1;a=a>>1|this.c<<7;this.c=k;break;
+case 4:if(!this.n){if(this.c||a>0x99){a+=0x60;this.c=1}if(this.h||(a&15)>9)a+=6}else{if(this.c)a-=0x60;if(this.h)a-=6}a&=255;this.z=+(a==0);this.h=0;this.R[7]=a;return;
+case 5:this.R[7]=a^255;this.n=1;this.h=1;return;
+case 6:this.n=0;this.h=0;this.c=1;return;
+default:this.n=0;this.h=0;this.c^=1;return}
+this.z=0;this.n=0;this.h=0;this.R[7]=a}
+cb(){const op=this.f8(),x=op>>6,y=op>>3&7,z=op&7,v=this.get(z);let r;
+if(x==0){const c=this.c;
+switch(y){
+case 0:this.c=v>>7;r=(v<<1|this.c)&255;break;
+case 1:this.c=v&1;r=v>>1|this.c<<7;break;
+case 2:this.c=v>>7;r=(v<<1|c)&255;break;
+case 3:this.c=v&1;r=v>>1|c<<7;break;
+case 4:this.c=v>>7;r=v<<1&255;break;
+case 5:this.c=v&1;r=v>>1|v&128;break;
+case 6:this.c=0;r=(v<<4|v>>4)&255;break;
+default:this.c=v&1;r=v>>1}
+this.z=+(r==0);this.n=0;this.h=0;this.set(z,r);return z==6?16:8}
+if(x==1){this.z=+!(v>>y&1);this.n=0;this.h=1;return z==6?12:8}
+this.set(z,x==2?v&~(1<<y):v|1<<y);return z==6?16:8}
+exec(){
+const R=this.R,op=this.f8(),x=op>>6,y=op>>3&7,z=op&7;let v,r,a,p;
+if(x==1){if(op==0x76){this.halt=true;return 4}this.set(y,this.get(z));return(y==6||z==6)?8:4}
+if(x==2){this.alu(y,this.get(z));return z==6?8:4}
+if(x==0)switch(z){
+case 0:
+if(y==0)return 4;
+if(y==1){a=this.f16();this.wb(a,this.sp&255);this.wb(a+1&0xFFFF,this.sp>>8);return 20}
+if(y==2){this.pc=this.pc+1&0xFFFF;return 4}
+{const d=this.f8()<<24>>24;if(y==3||this.cc(y)){this.pc=this.pc+d&0xFFFF;return 12}return 8}
+case 1:p=y>>1;
+if(y&1){const hl=this.hl,s=this.rp(p);r=hl+s;this.n=0;this.h=+((hl&0xFFF)+(s&0xFFF)>0xFFF);this.c=+(r>0xFFFF);R[4]=r>>8&255;R[5]=r&255;return 8}
+this.setRP(p,this.f16());return 12;
+case 2:p=y>>1;a=p==0?this.rp(0):p==1?this.rp(1):this.hl;
+if(p==2)this.setRP(2,a+1&0xFFFF);else if(p==3)this.setRP(2,a-1&0xFFFF);
+if(y&1)R[7]=this.rb(a);else this.wb(a,R[7]);return 8;
+case 3:p=y>>1;this.setRP(p,this.rp(p)+(y&1?-1:1)&0xFFFF);return 8;
+case 4:v=this.get(y);r=v+1&255;this.set(y,r);this.z=+(r==0);this.n=0;this.h=+((r&15)==0);return y==6?12:4;
+case 5:v=this.get(y);r=v-1&255;this.set(y,r);this.z=+(r==0);this.n=1;this.h=+((r&15)==15);return y==6?12:4;
+case 6:this.set(y,this.f8());return y==6?12:8;
+default:this.acc(y);return 4}
+switch(z){
+case 0:
+if(y<4){if(this.cc(y)){this.pc=this.pop();return 20}return 8}
+if(y==4){this.wb(0xFF00+this.f8(),R[7]);return 12}
+if(y==6){R[7]=this.rb(0xFF00+this.f8());return 12}
+{const e=this.f8()<<24>>24,s=this.sp;this.h=+((s&15)+(e&15)>15);this.c=+((s&255)+(e&255)>255);this.z=0;this.n=0;
+if(y==5){this.sp=s+e&0xFFFF;return 16}
+this.setRP(2,s+e&0xFFFF);return 12}
+case 1:p=y>>1;
+if(!(y&1)){v=this.pop();if(p==3){R[7]=v>>8;this.z=v>>7&1;this.n=v>>6&1;this.h=v>>5&1;this.c=v>>4&1}else this.setRP(p,v);return 12}
+if(y==1){this.pc=this.pop();return 16}
+if(y==3){this.pc=this.pop();this.ime=true;return 16}
+if(y==5){this.pc=this.hl;return 4}
+this.sp=this.hl;return 8;
+case 2:
+if(y<4){a=this.f16();if(this.cc(y)){this.pc=a;return 16}return 12}
+if(y==4){this.wb(0xFF00+R[1],R[7]);return 8}
+if(y==5){this.wb(this.f16(),R[7]);return 16}
+if(y==6){R[7]=this.rb(0xFF00+R[1]);return 8}
+R[7]=this.rb(this.f16());return 16;
+case 3:
+if(y==0){this.pc=this.f16();return 16}
+if(y==1)return this.cb();
+if(y==6){this.ime=false;this.eiq=false;return 4}
+if(y==7){this.eiq=true;return 4}
+return 4;
+case 4:
+if(y<4){a=this.f16();if(this.cc(y)){this.push(this.pc);this.pc=a;return 24}return 12}
+return 4;
+case 5:
+if(!(y&1)){p=y>>1;this.push(p==3?R[7]<<8|this.f:this.rp(p));return 16}
+if(y==1){a=this.f16();this.push(this.pc);this.pc=a;return 24}
+return 4;
+case 6:this.alu(y,this.f8());return 8;
+default:this.push(this.pc);this.pc=y*8;return 16}
+}
+step(){
+const io=this.io;let t=0;const ifl=io[0x0F]&io[0xFF]&0x1F;
+if(ifl){this.halt=false;
+if(this.ime){this.ime=false;for(let b=0;b<5;b++)if(ifl>>b&1){io[0x0F]&=~(1<<b);this.push(this.pc);this.pc=0x40+b*8;t=20;break}}}
+if(!t){if(this.halt)t=4;else{const e=this.eiq;t=this.exec();if(e){this.ime=true;this.eiq=false}}}
+this.div=this.div+t&0xFFFF;
+if(io[7]&4){this.tc+=t;const f=[1024,16,64,256][io[7]&3];while(this.tc>=f){this.tc-=f;if(io[5]==255){io[5]=io[6];io[0x0F]|=4}else io[5]++}}
+this.ppu(t);if(!this.noApu)try{this.apu(t)}catch(e){this.noApu=true;console.error(e)}return t}
+ppu(t){const io=this.io;
+if(!(io[0x40]&0x80)){this.cyc=0;this.ly=0;this.pm=0;return}
+this.cyc+=t;
+const m=this.ly>=144?1:this.cyc<80?2:this.cyc<252?3:0;
+if(m!=this.pm){this.pm=m;const s=io[0x41];
+if((m==0&&s&8)||(m==2&&s&32)||(m==1&&s&16))io[0x0F]|=2;
+if(m==0)this.line(this.ly);if(m==1)io[0x0F]|=1}
+if(this.cyc>=456){this.cyc-=456;this.ly++;if(this.ly>153){this.ly=0;this.wly=0}
+if(io[0x45]==this.ly&&io[0x41]&64)io[0x0F]|=2}}
+line(ly){
+const io=this.io,lc=io[0x40],vr=this.vram,fb=this.fb,bgp=io[0x47],o=ly*160,bgc=this.bgc;let win=false;
+if(lc&1){const scx=io[0x43],scy=io[0x42],wx=io[0x4B]-7,useW=(lc&0x20)&&ly>=io[0x4A]&&wx<160;
+for(let x=0;x<160;x++){let px,py,map;
+if(useW&&x>=wx){px=x-wx;py=this.wly;map=lc&0x40?0x1C00:0x1800;win=true}
+else{px=x+scx&255;py=ly+scy&255;map=lc&8?0x1C00:0x1800}
+const idx=vr[map+(py>>3)*32+(px>>3)],ad=lc&0x10?idx*16:0x1000+(idx<<24>>24)*16,q=ad+(py&7)*2,b=7-(px&7);
+const col=(vr[q+1]>>b&1)<<1|(vr[q]>>b&1);bgc[x]=col;fb[o+x]=PAL[bgp>>col*2&3]}
+if(win)this.wly++}
+else for(let x=0;x<160;x++){bgc[x]=0;fb[o+x]=PAL[0]}
+if(lc&2){const h=lc&4?16:8,oam=this.oam,sp=[];
+for(let i=0;i<40&&sp.length<10;i++){const y=oam[i*4]-16;if(ly>=y&&ly<y+h)sp.push(i)}
+sp.sort((a,b)=>oam[b*4+1]-oam[a*4+1]||b-a);
+for(const i of sp){const y=oam[i*4]-16,sx=oam[i*4+1]-8,fl=oam[i*4+3];let tl=oam[i*4+2],ry=ly-y;
+if(fl&64)ry=h-1-ry;if(h==16)tl&=0xFE;
+const q=tl*16+ry*2,pal=io[fl&16?0x49:0x48];
+for(let k=0;k<8;k++){const X=sx+k;if(X<0||X>159)continue;const b=fl&32?k:7-k,col=(vr[q+1]>>b&1)<<1|(vr[q]>>b&1);
+if(!col||(fl&128&&bgc[X]))continue;fb[o+X]=PAL[pal>>col*2&3]}}}
+}
+apuInit(){const io=this.io;this.ch=[0,1,2,3].map(()=>({en:false,dac:false,len:0,vol:0,et:0,t:0,p:0,lf:0x7FFF,sh:0,st:0,se:false}));
+this.fs=0;this.fc=0;this.sc=0;this.sL=0;this.sR=0;this.sn=0;this.hpl=0;this.hpr=0;io[0x26]=0x80;io[0x25]=0xF3;io[0x24]=0x77}
+apur(i){const io=this.io;if(i==0x26){const c=this.ch;return(io[0x26]&0x80)|0x70|(c[0].en?1:0)|(c[1].en?2:0)|(c[2].en?4:0)|(c[3].en?8:0)}
+return io[i]|[0x80,0x3F,0,0xFF,0xBF,0xFF,0x3F,0,0xFF,0xBF,0x7F,0xFF,0x9F,0xFF,0xBF,0xFF,0xFF,0,0,0xBF,0,0][i-0x10]}
+apuw(i,v){const io=this.io,c=this.ch;
+if(i==0x26){if(!(v&0x80)){for(let k=0x10;k<0x26;k++)io[k]=0;c.forEach(h=>{h.en=false;h.dac=false});io[0x26]=0}else io[0x26]=0x80;return}
+if(!(io[0x26]&0x80))return;io[i]=v;
+switch(i){
+case 0x11:c[0].len=64-(v&63);break;
+case 0x16:c[1].len=64-(v&63);break;
+case 0x20:c[3].len=64-(v&63);break;
+case 0x1B:c[2].len=256-v;break;
+case 0x12:c[0].dac=!!(v&0xF8);if(!c[0].dac)c[0].en=false;break;
+case 0x17:c[1].dac=!!(v&0xF8);if(!c[1].dac)c[1].en=false;break;
+case 0x21:c[3].dac=!!(v&0xF8);if(!c[3].dac)c[3].en=false;break;
+case 0x1A:c[2].dac=!!(v&0x80);if(!c[2].dac)c[2].en=false;break;
+case 0x14:if(v&0x80)this.trig(0);break;
+case 0x19:if(v&0x80)this.trig(1);break;
+case 0x1E:if(v&0x80)this.trig(2);break;
+case 0x23:if(v&0x80)this.trig(3)}}
+trig(k){const io=this.io,h=this.ch[k],B=[0x10,0x15,0x1A,0x1F][k];
+h.en=h.dac;if(!h.len)h.len=k==2?256:64;
+if(k<3){const f=io[B+3]|(io[B+4]&7)<<8;h.t=(2048-f)*(k==2?2:4)}
+if(k==2)h.p=0;
+if(k==3){h.t=0;h.lf=0x7FFF}
+if(k!=2){const r=io[k==3?0x21:B+2];h.vol=r>>4;h.et=(r&7)||8}
+if(k==0){const s=io[0x10];h.sh=io[0x13]|(io[0x14]&7)<<8;h.st=(s>>4&7)||8;h.se=!!(s&0x77);if(s&7)this.swc(h,false)}}
+swc(h,ap){const s=this.io[0x10]&7,d=h.sh>>s,f=this.io[0x10]&8?h.sh-d:h.sh+d;
+if(f>2047){h.en=false;return}
+if(ap&&s){h.sh=f;this.io[0x13]=f&255;this.io[0x14]=this.io[0x14]&0xF8|f>>8;this.swc(h,false)}}
+fseq(){const io=this.io,c=this.ch,f=this.fs;this.fs=f+1&7;
+if(!(f&1))[0x14,0x19,0x1E,0x23].forEach((r,k)=>{const h=c[k];if(io[r]&0x40&&h.len>0&&--h.len==0)h.en=false});
+if(f==2||f==6){const h=c[0];if(h.en&&h.se&&--h.st<=0){h.st=(io[0x10]>>4&7)||8;if(io[0x10]>>4&7)this.swc(h,true)}}
+if(f==7)for(const k of[0,1,3]){const h=c[k],r=io[[0x12,0x17,0,0x21][k]];if(r&7&&--h.et<=0){h.et=r&7;if(r&8){if(h.vol<15)h.vol++}else if(h.vol>0)h.vol--}}}
+apu(t){const io=this.io,c=this.ch,w=c[2],nz=c[3];
+this.fc+=t;if(this.fc>=8192){this.fc-=8192;this.fseq()}
+for(let k=0;k<2;k++){const h=c[k];if(!h.en)continue;const B=k?0x15:0x10;h.t-=t;const P=(2048-(io[B+3]|(io[B+4]&7)<<8))*4;while(h.t<=0){h.t+=P;h.p=h.p+1&7}}
+if(w.en){w.t-=t;const P=(2048-(io[0x1D]|(io[0x1E]&7)<<8))*2;while(w.t<=0){w.t+=P;w.p=w.p+1&31}}
+if(nz.en){nz.t-=t;const q=io[0x22],P=[8,16,32,48,64,80,96,112][q&7]<<(q>>4);while(nz.t<=0){nz.t+=P;const x=(nz.lf&1)^(nz.lf>>1&1);nz.lf=nz.lf>>1|x<<14;if(q&8)nz.lf=nz.lf&~0x40|x<<6}}
+const du=[1,0x81,0x87,0x7E],p0=c[0],p1=c[1];
+const o0=p0.en?(du[io[0x11]>>6]>>p0.p&1)*p0.vol:0,o1=p1.en?(du[io[0x16]>>6]>>p1.p&1)*p1.vol:0;
+const o2=w.en?((io[0x30+(w.p>>1)]>>(w.p&1?0:4)&15)>>[4,0,1,2][io[0x1C]>>5&3]):0,o3=nz.en?(~nz.lf&1)*nz.vol:0;
+const pn=io[0x25];this.sL+=(pn&16?o0:0)+(pn&32?o1:0)+(pn&64?o2:0)+(pn&128?o3:0);this.sR+=(pn&1?o0:0)+(pn&2?o1:0)+(pn&4?o2:0)+(pn&8?o3:0);this.sn++;
+this.sc+=t;
+if(!AU.cps){this.sc=0;this.sL=this.sR=this.sn=0;return}
+if(this.sc>=AU.cps){this.sc-=AU.cps;const v=io[0x24],n=this.sn,l=this.sL/n/60*((v>>4&7)+1)/8,r=this.sR/n/60*((v&7)+1)/8;this.sL=this.sR=this.sn=0;
+const ol=l-this.hpl,oR=r-this.hpr;this.hpl=l-ol*.996;this.hpr=r-oR*.996;
+if(AU.w-AU.r<8192){const k=AU.w++&8191,g=AU.mute?0:.6;AU.L[k]=ol*g;AU.R[k]=oR*g}}}
+frame(){let c=0;while(c<70224)c+=this.step();this.ctx.putImageData(this.img,0,0)}
+}
+
+const $=s=>document.querySelector(s),ctx=$("#cv").getContext("2d");
+let gb=null,keys=0,last=0,acc=0,rom=null,key="",n=0;
+const AU={L:new Float32Array(8192),R:new Float32Array(8192),w:0,r:0,cps:0,pre:true,mute:false,ctx:null};
+function initAudio(){try{
+if(!AU.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+const c=new C({latencyHint:"interactive"}),p=c.createScriptProcessor(1024,0,2);AU.ctx=c;AU.cps=4194304/c.sampleRate;
+p.onaudioprocess=e=>{const l=e.outputBuffer.getChannelData(0),r=e.outputBuffer.getChannelData(1);
+if(AU.pre&&AU.w-AU.r>=2048)AU.pre=false;
+for(let i=0;i<l.length;i++){if(!AU.pre&&AU.r<AU.w){const k=AU.r++&8191;l[i]=AU.L[k];r[i]=AU.R[k]}else{l[i]=r[i]=0;AU.pre=true}}};
+p.connect(c.destination);AU.p=p}
+if(AU.ctx.state!=="running")AU.ctx.resume()}catch(e){console.error(e)}}
+["pointerdown","keydown","touchend","click","drop"].forEach(ev=>addEventListener(ev,initAudio,{capture:true}));
+const msg=t=>{$("#msg").textContent=t||"";$("#msg").style.display=t?"flex":"none"};
+function save(){if(!gb||!gb.dirty||!key)return;gb.dirty=false;try{let s="";for(const c of gb.ram)s+=String.fromCharCode(c);localStorage.setItem(key,btoa(s))}catch(e){}}
+function start(data){
+const g=new GB(data,ctx);
+if(g.mbc<0){msg("Questo tipo di cartuccia (0x"+data[0x147].toString(16)+") non è supportato.");return}
+save();rom=data;
+const t=Array.from(data.slice(0x134,0x13F)).filter(c=>c>31&&c<127).map(c=>String.fromCharCode(c)).join("");
+key="pd:"+t+":"+data.length;
+try{const s=localStorage.getItem(key);if(s&&g.ram.length){const b=atob(s);for(let i=0;i<Math.min(b.length,g.ram.length);i++)g.ram[i]=b.charCodeAt(i)}}catch(e){}
+g.keys=keys;gb=g;msg("");$("#gb").classList.add("on");
+}
+async function load(file){
+if(!file)return;
+const d=new Uint8Array(await file.arrayBuffer());
+if(d.length<0x150){msg("File non valido: non sembra una ROM Game Boy.");return}
+start(d)}
+function setKey(k,down){
+if(down){if(!(keys>>k&1)&&gb)gb.io[0x0F]|=0x10;keys|=1<<k}else keys&=~(1<<k);
+if(gb)gb.keys=keys}
+function loop(ts){requestAnimationFrame(loop);
+acc+=Math.min(ts-last,100);last=ts;
+if(!gb){acc=0;return}
+while(acc>=16.74){acc-=16.74;try{gb.frame()}catch(e){console.error(e);msg("Errore: "+e.message);gb=null;return}if(++n%300==0)save()}}
+requestAnimationFrame(loop);
+document.querySelectorAll("[data-k]").forEach(b=>{const k=+b.dataset.k;
+b.addEventListener("pointerdown",e=>{e.preventDefault();b.classList.add("pr");setKey(k,true)});
+["pointerup","pointercancel","pointerleave"].forEach(ev=>b.addEventListener(ev,()=>{b.classList.remove("pr");setKey(k,false)}))});
+const KM={ArrowRight:0,ArrowLeft:1,ArrowUp:2,ArrowDown:3,x:4,X:4,z:5,Z:5,Backspace:6,Enter:7};
+addEventListener("keydown",e=>{if(e.key in KM){e.preventDefault();setKey(KM[e.key],true)}});
+addEventListener("keyup",e=>{if(e.key in KM){e.preventDefault();setKey(KM[e.key],false)}});
+$("#ins").onclick=()=>$("#f").click();
+$("#f").onchange=e=>{load(e.target.files[0]);e.target.value=""};
+$("#rs").onclick=()=>{if(rom)start(rom)};
+$("#mt").onclick=()=>{AU.mute=!AU.mute;$("#mt").textContent="Suono: "+(AU.mute?"no":"sì")};
+addEventListener("dragover",e=>e.preventDefault());
+addEventListener("drop",e=>{e.preventDefault();load(e.dataTransfer.files[0])});
+addEventListener("pagehide",save);
+if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+(async()=>{const nm=new URLSearchParams(location.search).get("rom");if(!nm)return;
+if(!/^[^\/\\]+\.(gb|gbc)$/i.test(nm)){msg("Nome ROM non valido.");return}
+msg("Carico "+nm+"…");
+try{const r=await fetch("roms/"+encodeURIComponent(nm));if(!r.ok)throw 0;const d=new Uint8Array(await r.arrayBuffer());if(d.length<0x150)throw 0;start(d)}
+catch(e){msg("ROM non trovata: "+nm)}})();
+</script></body></html>
